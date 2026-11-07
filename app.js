@@ -54,29 +54,39 @@ async function load() {
 const items = () => S.cache.slice().reverse();
 
 // ---------- 畫面 ----------
-function itemHTML(it) {
+// showEx=false：單字頁只顯示單字和中文；其他頁連例句一起顯示
+function itemHTML(it, showEx = true) {
   const k = keyOf(it), done = !!S.done[k];
   const sent = it.kind === '句子';
-  // 單字只顯示單字和中文，點一下才展開例句；句子就顯示句子
   return `<div class="item ${sent ? 'sent' : ''} ${done ? 'done' : ''}">
     <input type="checkbox" data-k="${esc(k)}" ${done ? 'checked' : ''}>
-    <div class="main"${it.ex ? ' data-open' : ''}><div class="w">${esc(it.en)}</div>
-      <div class="m">${esc(it.zh)}${it.ex ? ' <span class="more">▸ 例句</span>' : ''}</div>
-      ${it.ex ? `<div class="s">${esc(it.ex)}${it.exZh ? '<br>' + esc(it.exZh) : ''}</div>` : ''}</div>
+    <div class="main"><div class="w">${esc(it.en)}${it.from ? `<span class="pill">${esc(it.from)}</span>` : ''}</div>
+      <div class="m">${esc(it.zh)}</div>
+      ${showEx && it.ex ? `<div class="s">${esc(it.ex)}${it.exZh ? '<br>' + esc(it.exZh) : ''}</div>` : ''}</div>
     <button class="say" data-say="${esc(it.en)}">🔊</button></div>`;
+}
+
+// 句子頁：Claude 教的句子＋單字的例句（例句當成一句來複習）
+function sentences() {
+  const out = [];
+  for (const it of items()) {
+    if (it.kind === '句子') out.push(it);
+    else if (it.ex) out.push({ date: it.date, en: it.ex, zh: it.exZh, ex: '', exZh: '', kind: '句子', from: it.en });
+  }
+  return out;
 }
 
 let flt = 'all';
 function renderList() {
   const q = $('#q').value.trim().toLowerCase();
-  let arr = items();
+  let arr = flt === '句子' ? sentences() : items();
   if (flt === 'todo') arr = arr.filter(it => !S.done[keyOf(it)]);
-  else if (flt !== 'all') arr = arr.filter(it => it.kind === flt);
+  else if (flt === '單字') arr = arr.filter(it => it.kind !== '句子');
   if (q) arr = arr.filter(it => (it.en + it.zh + it.ex + it.exZh).toLowerCase().includes(q));
   let html = '', last = '';
   for (const it of arr) {
     if (it.date !== last) { html += `<div class="day">${esc(it.date || '未標日期')}</div>`; last = it.date; }
-    html += itemHTML(it);
+    html += itemHTML(it, flt !== '單字');
   }
   $('#list').innerHTML = html || '<p class="dim">沒有資料</p>';
 }
@@ -89,7 +99,7 @@ function render() {
     ? `共 ${words} 個單字、${all.length - words} 個句子，已複習 ${doneN}` + (S.cacheAt ? `（${new Date(S.cacheAt).toLocaleString('zh-TW', { hour12: false })} 更新）` : '')
     : '請先到 ⚙️ 設定填試算表 ID';
   const t = items().filter(it => it.date === today());
-  $('#today').innerHTML = t.length ? t.map(itemHTML).join('') : '<p class="dim" style="margin:0">今天還沒有新單字。練完說「結束」，Claude 存好後到 📖 單字本往下拉更新。</p>';
+  $('#today').innerHTML = t.length ? t.map(it => itemHTML(it)).join('') : '<p class="dim" style="margin:0">今天還沒有新單字。練完說「結束」，Claude 存好後到 📖 單字本往下拉更新。</p>';
   renderList();
   if ($('#p-card').classList.contains('on')) nextCard(true);
 }
@@ -172,7 +182,6 @@ function speakSys(t) {
 // ---------- 事件 ----------
 document.addEventListener('click', e => {
   const s = e.target.closest('[data-say]'); if (s) { speak(s.dataset.say); return; }
-  const m = e.target.closest('[data-open]'); if (m) m.parentNode.classList.toggle('open');
 });
 
 // 單字本頁：拉到最上面再往下拉就更新
@@ -267,6 +276,6 @@ $('#btnCopy').onclick = async () => {
 };
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
-$('#ver').textContent = '版本 v10' + (navigator.audioSession ? '（支援 audioSession）' : '');
+$('#ver').textContent = '版本 v11' + (navigator.audioSession ? '（支援 audioSession）' : '');
 render();
 load();
