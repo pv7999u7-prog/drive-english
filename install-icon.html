@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>安裝主畫面圖示</title>
+<style>
+body { font-family: -apple-system, "PingFang TC", sans-serif; margin: 0; padding: 28px 20px 40px; background: #0f172a; color: #f1f5f9; line-height: 1.6; }
+.wrap { max-width: 520px; margin: 0 auto; }
+img { display: block; width: 96px; height: 96px; border-radius: 22px; margin: 0 auto 18px; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+h1 { font-size: 22px; text-align: center; margin: 0 0 6px; }
+.sub { text-align: center; color: #94a3b8; margin: 0 0 24px; font-size: 14px; }
+button { display: block; width: 100%; padding: 14px; border: 0; border-radius: 14px; background: #22c55e; color: #052e16; font-size: 17px; font-weight: 700; }
+ol { padding-left: 20px; color: #cbd5e1; font-size: 15px; }
+li { margin: 8px 0; }
+.note { font-size: 13px; color: #94a3b8; margin-top: 20px; }
+#msg { text-align: center; font-size: 14px; color: #f59e0b; min-height: 20px; margin: 10px 0 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <img src="icon-180.png" alt="單字本圖示">
+  <h1>安裝「單字本」主畫面圖示</h1>
+  <p class="sub">用描述檔把圖示直接裝到主畫面</p>
+  <button id="dl">下載描述檔</button>
+  <p id="msg"></p>
+  <ol>
+    <li>請用 <b>Safari</b> 開這一頁，按上面的按鈕，跳出提示時按「<b>允許</b>」</li>
+    <li>打開 <b>設定</b> App，最上面會出現「<b>已下載描述檔</b>」，點進去<br>（沒看到的話：設定 → 一般 → VPN 與裝置管理）</li>
+    <li>按右上角「<b>安裝</b>」→ 輸入 iPhone 密碼 → 再按「安裝」→「完成」</li>
+    <li>回主畫面就會看到「單字本」圖示</li>
+  </ol>
+  <p class="note" id="cfg"></p>
+  <p class="note">點圖示會以全螢幕打開單字本。<br>
+  描述檔只包含網址與圖示。要移除：設定 → 一般 → VPN 與裝置管理 → 單字本 → 移除描述檔。</p>
+</div>
+<script>
+// GitHub Pages 會把 .mobileconfig 當文字顯示，所以在這裡組好描述檔，用正確類型下載
+// 全螢幕 App 的儲存空間跟 Safari 分開，所以把 Safari 這邊填好的設定帶進網址，第一次打開會自動記住
+function appUrl() {
+  const u = new URL('./', location.href);
+  try {
+    const S = JSON.parse(localStorage.getItem('drive-en-v2') || '{}');
+    if (S.sheetId) u.searchParams.set('sheet', S.sheetId);
+    if (S.projUrl) u.searchParams.set('proj', S.projUrl);
+  } catch (e) {}
+  return u.href.replace(/&/g, '&amp;');
+}
+document.getElementById('dl').addEventListener('click', async () => {
+  const msg = document.getElementById('msg');
+  msg.textContent = '準備中…';
+  try {
+    const buf = await fetch('icon-512.png', { cache: 'no-store' }).then(r => r.arrayBuffer());
+    let bin = ''; new Uint8Array(buf).forEach(b => bin += String.fromCharCode(b));
+    const icon = btoa(bin).replace(/.{1,64}/g, '$&\n');
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>PayloadContent</key>
+  <array>
+    <dict>
+      <key>PayloadType</key><string>com.apple.webClip.managed</string>
+      <key>PayloadVersion</key><integer>1</integer>
+      <key>PayloadIdentifier</key><string>io.github.pv7999u7-prog.drive-english.webclip</string>
+      <key>PayloadUUID</key><string>4E2B7C1A-9D3F-4A61-8B2E-5C7D9F0A1B23</string>
+      <key>PayloadDisplayName</key><string>單字本</string>
+      <key>Label</key><string>單字本</string>
+      <key>URL</key><string>${appUrl()}</string>
+      <key>FullScreen</key><true/>
+      <key>IgnoreManifestScope</key><true/>
+      <key>IsRemovable</key><true/>
+      <key>Precomposed</key><true/>
+      <key>Icon</key>
+      <data>
+${icon}</data>
+    </dict>
+  </array>
+  <key>PayloadDisplayName</key><string>單字本</string>
+  <key>PayloadDescription</key><string>在主畫面加上「單字本」圖示</string>
+  <key>PayloadIdentifier</key><string>io.github.pv7999u7-prog.drive-english</string>
+  <key>PayloadType</key><string>Configuration</string>
+  <key>PayloadUUID</key><string>8A1F3E5C-2B4D-4C6E-9F70-1D2E3F4A5B6C</string>
+  <key>PayloadVersion</key><integer>1</integer>
+  <key>PayloadRemovalDisallowed</key><false/>
+</dict>
+</plist>
+`;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([xml], { type: 'application/x-apple-aspen-config' }));
+    a.download = '單字本圖示.mobileconfig';
+    document.body.appendChild(a); a.click(); a.remove();
+    msg.textContent = '下載好之後，請打開「設定」App 繼續安裝';
+  } catch (e) {
+    msg.textContent = '下載失敗，請確認有網路後再試一次';
+  }
+});
+try {
+  const S = JSON.parse(localStorage.getItem('drive-en-v2') || '{}');
+  document.getElementById('cfg').textContent = S.sheetId
+    ? '✅ 會把你在 Safari 填好的試算表 ID' + (S.projUrl ? '和 Claude 專案網址' : '') + '一起帶進圖示，裝好就能用。'
+    : '⚠️ 還沒在 Safari 的單字本填試算表 ID，裝好後要在圖示打開的 App 裡再填一次。';
+} catch (e) {}
+</script>
+</body>
+</html>
