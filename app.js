@@ -326,6 +326,6 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadSW) location.reload(); });
   navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
 }
-$('#ver').textContent = '版本 v14' + (navigator.audioSession ? '（支援 audioSession）' : '');
+$('#ver').textContent = '版本 v15' + (navigator.audioSession ? '（支援 audioSession）' : '');
 render();
 load();
