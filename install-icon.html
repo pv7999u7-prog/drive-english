@@ -88,7 +88,7 @@ ${icon}</data>
 `;
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([xml], { type: 'application/x-apple-aspen-config' }));
-    a.download = '單字本圖示.mobileconfig';
+    a.download = 'Vocabulary.mobileconfig';
     document.body.appendChild(a); a.click(); a.remove();
     msg.textContent = '下載好之後，請打開「設定」App 繼續安裝';
   } catch (e) {
