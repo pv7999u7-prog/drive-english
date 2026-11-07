@@ -59,13 +59,16 @@ nav button.on{color:var(--acc);font-weight:700}
 body.home #dock{display:block}
 body.home #p-home{padding-bottom:250px}
 #dock .big{font-size:24px;padding:21px 16px;margin:8px 0 0}
-#dock .gem{background:#3b82f6;color:#fff;font-weight:700}
+#dock .cla{background:#D97757!important;color:#fff!important;font-weight:700}
+#dock .gem{background:linear-gradient(90deg,#4796E3,#9177C7 55%,#CA6673);color:#fff;font-weight:700}
 #ptr{height:0;overflow:hidden;text-align:center;color:var(--dim);font-size:14px;transition:height .15s}
 #toast{position:fixed;left:16px;right:16px;top:calc(env(safe-area-inset-top) + 10px);background:#7f1d1d;color:#fecaca;border-radius:12px;padding:10px 12px;font-size:14px;display:none;z-index:20}
 pre{white-space:pre-wrap;background:#0b1220;border-radius:10px;padding:10px;font-size:13px;max-height:220px;overflow:auto}
 </style>
 </head>
 <body class="home">
+
+<div id="ptr"></div>
 
 <section class="page on" id="p-home">
   <h1>🚗 開車英文</h1>
@@ -77,7 +80,6 @@ pre{white-space:pre-wrap;background:#0b1220;border-radius:10px;padding:10px;font
 </section>
 
 <section class="page" id="p-list">
-  <div id="ptr"></div>
   <div class="row" style="margin-top:12px"><h1 style="margin:0">📖 單字本</h1><button id="btnRefresh" style="flex:none">↻ 更新</button></div>
   <div class="seg" id="flt">
     <button data-v="all" class="on">全部</button>
@@ -133,8 +135,8 @@ pre{white-space:pre-wrap;background:#0b1220;border-radius:10px;padding:10px;font
 </section>
 
 <div id="dock">
-  <a class="btn big pri" href="https://claude.ai/" id="openClaude">▶ 開啟 Claude</a>
-  <a class="btn big gem" href="https://gemini.google.com/app">▶ 開啟 Gemini</a>
+  <a class="btn big cla" href="https://claude.ai/" id="openClaude">Claude</a>
+  <a class="btn big gem" href="https://gemini.google.com/app">Gemini</a>
 </div>
 
 <div id="toast"></div>
@@ -146,6 +148,6 @@ pre{white-space:pre-wrap;background:#0b1220;border-radius:10px;padding:10px;font
   <button data-p="set">⚙️ 設定</button>
 </nav>
 
-<script src="app.js"></script>
+<script src="app.js?v=12"></script>
 </body>
 </html>

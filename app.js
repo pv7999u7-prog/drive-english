@@ -184,10 +184,15 @@ document.addEventListener('click', e => {
   const s = e.target.closest('[data-say]'); if (s) { speak(s.dataset.say); return; }
 });
 
-// 單字本頁：拉到最上面再往下拉就更新
+// 每一頁拉到最上面再往下拉：重新讀試算表，順便檢查 App 有沒有新版
+async function refreshAll() {
+  await load();
+  try { const reg = await navigator.serviceWorker.getRegistration(); if (reg) await reg.update(); } catch (e) {}
+}
 let pullY = null, pullD = 0;
 document.addEventListener('touchstart', e => {
-  pullY = $('#p-list').classList.contains('on') && scrollY <= 0 ? e.touches[0].clientY : null; pullD = 0;
+  const skip = e.target.closest('nav, #dock, input, #flash');
+  pullY = !skip && scrollY <= 0 ? e.touches[0].clientY : null; pullD = 0;
 }, { passive: true });
 document.addEventListener('touchmove', e => {
   if (pullY === null) return;
@@ -202,7 +207,7 @@ document.addEventListener('touchend', async () => {
   pullY = null;
   if (pullD > 110) {
     $('#ptr').style.height = '48px'; $('#ptr').textContent = '更新中…';
-    await load();
+    await refreshAll();
   }
   $('#ptr').style.height = '0';
 });
@@ -234,7 +239,6 @@ $('#sheetId').onchange = () => {
 function setOpenLink() {
   const ok = /^https:\/\/claude\.ai\/project\/[\w-]+/.test(S.projUrl || '');
   $('#openClaude').href = ok ? S.projUrl : 'https://claude.ai/';
-  $('#openClaude').textContent = ok ? '▶ 開啟 Claude 專案' : '▶ 開啟 Claude';
   $('#openHint').textContent = (ok ? '進專案後 → 開新對話 → 按語音模式。' : '進「開車英文」專案 → 開新對話 → 按語音模式。') + '說「stop」或「結束」，Claude 會自動把單字存進單字本。';
 }
 // 全螢幕模式點 https 連結只會在 App 內開網頁版，所以先用 claude:// 叫起 Claude App；沒反應再退回網頁
@@ -275,7 +279,12 @@ $('#btnCopy').onclick = async () => {
   setTimeout(() => $('#btnCopy').textContent = '📋 複製專案指示', 2000);
 };
 
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
-$('#ver').textContent = '版本 v11' + (navigator.audioSession ? '（支援 audioSession）' : '');
+// 有新版時：新的 service worker 接手後自動重新整理一次（第一次安裝不重整）
+if ('serviceWorker' in navigator) {
+  const hadSW = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadSW) location.reload(); });
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
+}
+$('#ver').textContent = '版本 v12' + (navigator.audioSession ? '（支援 audioSession）' : '');
 render();
 load();
