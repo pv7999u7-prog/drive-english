@@ -3,7 +3,7 @@ const KEY = 'drive-en-v2';
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-let S = { sheetId: '', rate: 0.85, done: {}, cache: [], cacheAt: 0 };
+let S = { sheetId: '', rate: 0.85, recentN: 100, done: {}, cache: [], cacheAt: 0 };
 try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 
@@ -57,12 +57,13 @@ const items = () => S.cache.slice().reverse();
 function itemHTML(it) {
   const k = keyOf(it), done = !!S.done[k];
   const sent = it.kind === '句子';
+  // 單字只顯示單字和中文，點一下才展開例句；句子就顯示句子
   return `<div class="item ${sent ? 'sent' : ''} ${done ? 'done' : ''}">
     <input type="checkbox" data-k="${esc(k)}" ${done ? 'checked' : ''}>
-    <div class="main"><div class="w">${esc(it.en)}${sent ? '<span class="pill">句子</span>' : ''}</div>
-      <div class="m">${esc(it.zh)}</div>
+    <div class="main"${it.ex ? ' data-open' : ''}><div class="w">${esc(it.en)}</div>
+      <div class="m">${esc(it.zh)}${it.ex ? ' <span class="more">▸ 例句</span>' : ''}</div>
       ${it.ex ? `<div class="s">${esc(it.ex)}${it.exZh ? '<br>' + esc(it.exZh) : ''}</div>` : ''}</div>
-    <button class="say" data-say="${esc(it.ex ? it.en + '. ' + it.ex : it.en)}">🔊</button></div>`;
+    <button class="say" data-say="${esc(it.en)}">🔊</button></div>`;
 }
 
 let flt = 'all';
@@ -88,7 +89,7 @@ function render() {
     ? `共 ${words} 個單字、${all.length - words} 個句子，已複習 ${doneN}` + (S.cacheAt ? `（${new Date(S.cacheAt).toLocaleString('zh-TW', { hour12: false })} 更新）` : '')
     : '請先到 ⚙️ 設定填試算表 ID';
   const t = items().filter(it => it.date === today());
-  $('#today').innerHTML = t.length ? t.map(itemHTML).join('') : '<p class="dim" style="margin:0">今天還沒有新單字。練完說「結束」，Claude 存好後按 📖 的 ↻ 更新。</p>';
+  $('#today').innerHTML = t.length ? t.map(itemHTML).join('') : '<p class="dim" style="margin:0">今天還沒有新單字。練完說「結束」，Claude 存好後到 📖 單字本往下拉更新。</p>';
   renderList();
   if ($('#p-card').classList.contains('on')) nextCard(true);
 }
@@ -97,7 +98,7 @@ function render() {
 let cardFlt = 'todo', card = null;
 function cardPool() {
   const arr = items();
-  if (cardFlt === 'recent') return arr.slice(0, 100);
+  if (cardFlt === 'recent') return arr.filter(it => it.kind !== '句子').slice(0, S.recentN);
   if (cardFlt === 'todo') return arr.filter(it => !S.done[keyOf(it)]);
   return arr;
 }
@@ -128,17 +129,47 @@ function pickVoice() {
   voice = vs.find(v => v.lang === 'en-US' && /Samantha|Premium|Enhanced/.test(v.name)) || vs.find(v => v.lang === 'en-US') || vs[0] || null;
 }
 if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+// iOS Safari：cancel() 後馬上 speak() 常常沒聲音，所以只有正在念時才 cancel，並稍等一下再念
 function speak(t) {
   if (!('speechSynthesis' in window)) return;
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(t);
-  u.lang = 'en-US'; u.rate = S.rate; if (voice) u.voice = voice;
-  speechSynthesis.speak(u);
+  if (!voice) pickVoice();
+  const go = () => {
+    const u = new SpeechSynthesisUtterance(t);
+    u.lang = 'en-US'; u.rate = S.rate; u.volume = 1; if (voice) u.voice = voice;
+    speechSynthesis.speak(u);
+    speechSynthesis.resume();
+  };
+  if (speechSynthesis.speaking || speechSynthesis.pending) { speechSynthesis.cancel(); setTimeout(go, 120); }
+  else go();
 }
 
 // ---------- 事件 ----------
 document.addEventListener('click', e => {
-  const s = e.target.closest('[data-say]'); if (s) speak(s.dataset.say);
+  const s = e.target.closest('[data-say]'); if (s) { speak(s.dataset.say); return; }
+  const m = e.target.closest('[data-open]'); if (m) m.parentNode.classList.toggle('open');
+});
+
+// 單字本頁：拉到最上面再往下拉就更新
+let pullY = null, pullD = 0;
+document.addEventListener('touchstart', e => {
+  pullY = $('#p-list').classList.contains('on') && scrollY <= 0 ? e.touches[0].clientY : null; pullD = 0;
+}, { passive: true });
+document.addEventListener('touchmove', e => {
+  if (pullY === null) return;
+  pullD = e.touches[0].clientY - pullY;
+  if (pullD <= 0) { $('#ptr').style.height = '0'; return; }
+  $('#ptr').style.height = Math.min(pullD / 2, 48) + 'px';
+  $('#ptr').style.lineHeight = '48px';
+  $('#ptr').textContent = pullD > 110 ? '↻ 放開就更新' : '↓ 往下拉更新';
+}, { passive: true });
+document.addEventListener('touchend', async () => {
+  if (pullY === null) return;
+  pullY = null;
+  if (pullD > 110) {
+    $('#ptr').style.height = '48px'; $('#ptr').textContent = '更新中…';
+    await load();
+  }
+  $('#ptr').style.height = '0';
 });
 document.addEventListener('change', e => {
   const k = e.target.dataset && e.target.dataset.k; if (k === undefined) return;
@@ -153,6 +184,7 @@ document.querySelector('nav').onclick = e => {
   const b = e.target.closest('button'); if (!b) return;
   document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b));
   document.querySelectorAll('.page').forEach(p => p.classList.toggle('on', p.id === 'p-' + b.dataset.p));
+  document.body.classList.toggle('home', b.dataset.p === 'home');
   if (b.dataset.p === 'card') nextCard(true);
   scrollTo(0, 0);
 };
@@ -191,8 +223,15 @@ $('#rate').value = S.rate; $('#rateVal').textContent = S.rate;
 $('#rate').oninput = () => { S.rate = +$('#rate').value; $('#rateVal').textContent = S.rate; save(); };
 $('#rate').onchange = () => speak('This is how fast I will read.');
 
+function showRecentN() { $('#recentN').value = S.recentN; $('#recentBtn').textContent = `最近 ${S.recentN}`; }
+showRecentN();
+$('#recentN').onchange = () => {
+  const n = Math.round(+$('#recentN').value);
+  S.recentN = n >= 10 && n <= 1000 ? n : 100; save(); showRecentN(); showInstr();
+};
+
 let instrTpl = '';
-function showInstr() { $('#instr').textContent = instrTpl.replace('{{SHEET_ID}}', S.sheetId || '（先填上面的試算表 ID）'); }
+function showInstr() { $('#instr').textContent = instrTpl.replace('{{SHEET_ID}}', S.sheetId || '（先填上面的試算表 ID）').replace('{{N}}', S.recentN); }
 fetch('claude-project-instructions.md').then(r => r.text()).then(t => { instrTpl = t; showInstr(); }).catch(() => {});
 $('#btnCopy').onclick = async () => {
   try { await navigator.clipboard.writeText($('#instr').textContent); $('#btnCopy').textContent = '✅ 已複製'; }

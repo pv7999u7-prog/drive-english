@@ -53,23 +53,30 @@ nav button.on{color:var(--acc);font-weight:700}
 #fBack .m{font-size:22px;color:var(--warn)}
 #fBack .s{color:var(--dim);margin-top:8px}
 .note{background:#422006;border:1px solid #92400e;color:#fde68a;border-radius:12px;padding:12px;font-size:14px;line-height:1.5}
+#dock{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 53px);padding:10px 16px 12px;background:linear-gradient(transparent,var(--bg) 18px);display:none}
+body.home #dock{display:block}
+body.home #p-home{padding-bottom:250px}
+#dock .big{font-size:26px;padding:26px 16px;margin:8px 0 0}
+#dock .gem{font-size:20px;padding:18px 16px}
+.item .s{display:none}.item.open .s{display:block}
+.item .more{color:var(--dim);font-size:13px}
+#ptr{height:0;overflow:hidden;text-align:center;color:var(--dim);font-size:14px;transition:height .15s}
 pre{white-space:pre-wrap;background:#0b1220;border-radius:10px;padding:10px;font-size:13px;max-height:220px;overflow:auto}
 </style>
 </head>
-<body>
+<body class="home">
 
 <section class="page on" id="p-home">
   <h1>🚗 開車英文</h1>
   <div class="dim" id="stat"></div>
-  <a class="btn big pri" href="https://claude.ai/" id="openClaude">▶ 開啟 Claude</a>
-  <div class="dim" id="openHint">進「開車英文」專案 → 開新對話 → 按語音模式。說「stop」或「結束」，Claude 會自動把單字存進單字本。</div>
-  <a class="btn big" href="https://gemini.google.com/app" style="margin-top:16px">開啟 Gemini（需手動存單字）</a>
+  <div class="dim" id="openHint" style="margin-top:8px"></div>
 
   <h2>今天新增</h2>
   <div class="card" id="today"></div>
 </section>
 
 <section class="page" id="p-list">
+  <div id="ptr"></div>
   <div class="row" style="margin-top:12px"><h1 style="margin:0">📖 單字本</h1><button id="btnRefresh" style="flex:none">↻ 更新</button></div>
   <div class="seg" id="flt">
     <button data-v="all" class="on">全部</button>
@@ -85,7 +92,7 @@ pre{white-space:pre-wrap;background:#0b1220;border-radius:10px;padding:10px;font
   <h1>🃏 抽卡複習</h1>
   <div class="seg" id="cardFlt">
     <button data-v="todo" class="on">未複習</button>
-    <button data-v="recent">最近 100</button>
+    <button data-v="recent" id="recentBtn">最近 100</button>
     <button data-v="all">全部</button>
   </div>
   <div class="card" id="flash">
@@ -109,6 +116,9 @@ pre{white-space:pre-wrap;background:#0b1220;border-radius:10px;padding:10px;font
   <label>Claude 專案網址（選填）</label>
   <input id="projUrl" autocomplete="off" placeholder="https://claude.ai/project/…">
   <p class="dim">在 Safari 開 claude.ai → 進你的專案 → 複製網址列的網址貼在這裡。「開啟 Claude」就會直接進這個專案。</p>
+  <label>每次對話讀取最近幾個單字</label>
+  <input id="recentN" type="number" min="10" max="1000" step="10" inputmode="numeric">
+  <p class="dim">改了之後要按下面「📋 複製專案指示」，重新貼到 Claude 專案的指示，才會生效。</p>
   <label>朗讀語速：<span id="rateVal"></span></label>
   <input id="rate" type="range" min="0.5" max="1.1" step="0.05">
   <a class="btn big" href="install-icon.html">📲 安裝主畫面圖示</a>
@@ -117,6 +127,11 @@ pre{white-space:pre-wrap;background:#0b1220;border-radius:10px;padding:10px;font
   <button id="btnCopy" style="width:100%;margin-top:10px">📋 複製專案指示</button>
   <pre id="instr"></pre>
 </section>
+
+<div id="dock">
+  <a class="btn big pri" href="https://claude.ai/" id="openClaude">▶ 開啟 Claude</a>
+  <a class="btn big gem" href="https://gemini.google.com/app">開啟 Gemini（需手動存單字）</a>
+</div>
 
 <nav>
   <button data-p="home" class="on">🚗 開始</button>
