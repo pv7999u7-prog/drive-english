@@ -130,12 +130,29 @@ function pickVoice() {
 }
 if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
 // iPhone 開靜音時 speechSynthesis 會沒聲音，所以先用音檔播放（媒體聲音不受靜音開關影響），失敗才退回系統朗讀
+// Safari 17 起可以把聲音類別設成 playback，靜音開關就不會擋住網頁聲音
+try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
 const player = new Audio();
+player.preload = 'auto';
+function toast(t) {
+  $('#toast').textContent = t; $('#toast').style.display = 'block';
+  clearTimeout(toast.t); toast.t = setTimeout(() => $('#toast').style.display = 'none', 4000);
+}
+function sayLog(t) { const el = $('#sayLog'); if (el) el.textContent = t; }
 function speak(t) {
+  let fell = false;
+  const fallback = why => {
+    if (fell) return; fell = true;
+    sayLog('音檔失敗（' + why + '），改用系統語音；系統語音在靜音模式下不會出聲');
+    toast('🔇 音檔播放失敗（' + why + '），改用系統語音。若沒聲音請關掉靜音');
+    speakSys(t);
+  };
   player.pause();
+  player.onerror = () => fallback('載入錯誤 ' + (player.error ? player.error.code : ''));
+  player.onplaying = () => sayLog('音檔播放中 ✓');
   player.src = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&ttsspeed=${S.rate}&q=${encodeURIComponent(t.slice(0, 200))}`;
-  player.play().catch(() => speakSys(t));
-  player.onerror = () => speakSys(t);
+  const p = player.play();
+  if (p) p.catch(e => fallback(e.name || '無法播放'));
 }
 
 // iOS Safari：cancel() 後馬上 speak() 常常沒聲音，所以只有正在念時才 cancel，並稍等一下再念
@@ -231,6 +248,7 @@ setOpenLink();
 $('#rate').value = S.rate; $('#rateVal').textContent = S.rate;
 $('#rate').oninput = () => { S.rate = +$('#rate').value; $('#rateVal').textContent = S.rate; save(); };
 $('#rate').onchange = () => speak('This is how fast I will read.');
+$('#btnTestSay').onclick = () => { sayLog('播放中…'); speak('Hello! This is a sound test.'); };
 
 function showRecentN() { $('#recentN').value = S.recentN; $('#recentBtn').textContent = `最近 ${S.recentN}`; }
 showRecentN();
@@ -249,5 +267,6 @@ $('#btnCopy').onclick = async () => {
 };
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+$('#ver').textContent = '版本 v10' + (navigator.audioSession ? '（支援 audioSession）' : '');
 render();
 load();

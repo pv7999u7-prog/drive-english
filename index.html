@@ -58,11 +58,12 @@ nav button.on{color:var(--acc);font-weight:700}
 #dock{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 53px);padding:10px 16px 12px;background:linear-gradient(transparent,var(--bg) 18px);display:none}
 body.home #dock{display:block}
 body.home #p-home{padding-bottom:250px}
-#dock .big{font-size:26px;padding:26px 16px;margin:8px 0 0}
+#dock .big{font-size:24px;padding:21px 16px;margin:8px 0 0}
 #dock .gem{background:#3b82f6;color:#fff;font-weight:700}
 .item .s{display:none}.item.open .s{display:block}
 .item .more{color:var(--dim);font-size:13px}
 #ptr{height:0;overflow:hidden;text-align:center;color:var(--dim);font-size:14px;transition:height .15s}
+#toast{position:fixed;left:16px;right:16px;top:calc(env(safe-area-inset-top) + 10px);background:#7f1d1d;color:#fecaca;border-radius:12px;padding:10px 12px;font-size:14px;display:none;z-index:20}
 pre{white-space:pre-wrap;background:#0b1220;border-radius:10px;padding:10px;font-size:13px;max-height:220px;overflow:auto}
 </style>
 </head>
@@ -123,17 +124,22 @@ pre{white-space:pre-wrap;background:#0b1220;border-radius:10px;padding:10px;font
   <p class="dim">改了之後要按下面「📋 複製專案指示」，重新貼到 Claude 專案的指示，才會生效。</p>
   <label>朗讀語速：<span id="rateVal"></span></label>
   <input id="rate" type="range" min="0.5" max="1.1" step="0.05">
+  <button id="btnTestSay" style="width:100%;margin-top:10px">🔊 測試聲音</button>
+  <div class="dim" id="sayLog" style="margin-top:6px"></div>
   <a class="btn big" href="install-icon.html">📲 安裝主畫面圖示</a>
   <h2>Claude 專案設定（只要做一次）</h2>
   <div class="note">在 Claude App 或 claude.ai：<br>1. 建立專案「開車英文」，把下面的指示貼到專案的「指示」。<br>2. 確認「Google Sheets」連接器有開（設定 → 連接器）。<br>3. 每次上車：進這個專案 → 開新對話 → 按語音模式。</div>
   <button id="btnCopy" style="width:100%;margin-top:10px">📋 複製專案指示</button>
   <pre id="instr"></pre>
+  <p class="dim" id="ver" style="text-align:center"></p>
 </section>
 
 <div id="dock">
   <a class="btn big pri" href="https://claude.ai/" id="openClaude">▶ 開啟 Claude</a>
   <a class="btn big gem" href="https://gemini.google.com/app">▶ 開啟 Gemini</a>
 </div>
+
+<div id="toast"></div>
 
 <nav>
   <button data-p="home" class="on">🚗 開始</button>
