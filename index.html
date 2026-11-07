@@ -63,7 +63,7 @@ body.home #p-home{padding-bottom:250px}
 #dock .cla{background:#D97757!important;color:#fff!important;font-weight:700}
 #dock .gem{background:linear-gradient(90deg,#4796E3,#9177C7 55%,#CA6673);color:#fff;font-weight:700}
 #ptr{height:0;overflow:hidden;text-align:center;color:var(--dim);font-size:14px;transition:height .15s}
-#toast{position:fixed;left:16px;right:16px;top:calc(env(safe-area-inset-top) + 10px);background:#7f1d1d;color:#fecaca;border-radius:12px;padding:10px 12px;font-size:14px;display:none;z-index:20}
+#toast{white-space:pre-line;position:fixed;left:16px;right:16px;top:calc(env(safe-area-inset-top) + 10px);background:#7f1d1d;color:#fecaca;border-radius:12px;padding:10px 12px;font-size:14px;display:none;z-index:20}
 pre{white-space:pre-wrap;background:#0b1220;border-radius:10px;padding:10px;font-size:13px;max-height:220px;overflow:auto}
 </style>
 </head>
@@ -119,6 +119,11 @@ pre{white-space:pre-wrap;background:#0b1220;border-radius:10px;padding:10px;font
   <label>Claude 專案網址（選填）</label>
   <input id="projUrl" autocomplete="off" placeholder="https://claude.ai/project/…">
   <p class="dim">在 Safari 開 claude.ai → 進你的專案 → 複製網址列的網址貼在這裡。「開啟 Claude」就會直接進這個專案。</p>
+  <label>刪除用網址（Apps Script，選填）</label>
+  <input id="delUrl" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec">
+  <label>刪除密碼</label>
+  <input id="delKey" autocomplete="off">
+  <p class="dim">填好之後，單字本按 🗑 會真的從試算表刪掉；沒填只會從這支手機隱藏。</p>
   <label>每次對話讀取最近幾個單字</label>
   <input id="recentN" type="number" min="10" max="1000" step="10" inputmode="numeric">
   <p class="dim">改了之後要按下面「📋 複製專案指示」，重新貼到 Claude 專案的指示，才會生效。</p>
@@ -148,6 +153,6 @@ pre{white-space:pre-wrap;background:#0b1220;border-radius:10px;padding:10px;font
   <button data-p="set">⚙️ 設定</button>
 </nav>
 
-<script src="app.js?v=13"></script>
+<script src="app.js?v=14"></script>
 </body>
 </html>

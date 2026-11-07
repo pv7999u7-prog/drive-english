@@ -43,6 +43,8 @@ function appUrl() {
     const S = JSON.parse(localStorage.getItem('drive-en-v2') || '{}');
     if (S.sheetId) u.searchParams.set('sheet', S.sheetId);
     if (S.projUrl) u.searchParams.set('proj', S.projUrl);
+    if (S.delUrl) u.searchParams.set('del', S.delUrl);
+    if (S.delKey) u.searchParams.set('key', S.delKey);
   } catch (e) {}
   return u.href.replace(/&/g, '&amp;');
 }

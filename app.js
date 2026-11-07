@@ -12,7 +12,9 @@ const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch
 const qs = new URLSearchParams(location.search);
 if (qs.get('sheet')) S.sheetId = qs.get('sheet').trim();
 if (/^https:\/\/claude\.ai\/project\/[\w-]+$/.test(qs.get('proj') || '')) S.projUrl = qs.get('proj');
-if (qs.get('sheet') || qs.get('proj')) { save(); history.replaceState(null, '', location.pathname); }
+if (/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(qs.get('del') || '')) S.delUrl = qs.get('del');
+if (qs.get('key')) S.delKey = qs.get('key').trim();
+if (qs.get('sheet') || qs.get('proj') || qs.get('del') || qs.get('key')) { save(); history.replaceState(null, '', location.pathname); }
 
 const today = () => new Date().toLocaleDateString('sv-SE');
 const keyOf = it => it.en.toLowerCase();
@@ -51,7 +53,7 @@ async function load() {
   }
 }
 
-// 新的在前；刪除的只在這支手機上隱藏（網頁沒有寫入試算表的權限）
+// 新的在前；沒設定 Apps Script 時，刪除只在這支手機上隱藏
 const items = () => S.cache.filter(it => !S.hidden[keyOf(it)]).slice().reverse();
 
 // ---------- 畫面 ----------
@@ -197,12 +199,29 @@ function toggleStar(k) {
 document.addEventListener('click', e => {
   const s = e.target.closest('[data-say]'); if (s) { speak(s.dataset.say); return; }
   const st = e.target.closest('[data-star]'); if (st) { toggleStar(st.dataset.star); return; }
-  const d = e.target.closest('[data-del]');
-  if (d && confirm(`刪除「${d.dataset.en}」？
-只會從這支手機的單字本移除，試算表裡的資料不會刪。`)) {
-    S.hidden[d.dataset.del] = Date.now(); delete S.star[d.dataset.del]; save(); render();
-  }
+  const d = e.target.closest('[data-del]'); if (d) delItem(d.dataset.del, d.dataset.en);
 });
+
+// 刪除：有設定 Apps Script 就真的從試算表刪掉（同一個英文的列全部刪），沒有就只在這支手機隱藏
+async function delItem(k, en) {
+  if (!(S.delUrl && S.delKey)) {
+    if (!confirm(`刪除「${en}」？
+還沒設定刪除用的 Apps Script，只會從這支手機的單字本移除，試算表裡不會刪。`)) return;
+    S.hidden[k] = Date.now(); delete S.star[k]; save(); render(); return;
+  }
+  if (!confirm(`從試算表刪除「${en}」？
+刪了就沒辦法復原。`)) return;
+  try {
+    // text/plain 才不會觸發 CORS 預檢，Apps Script 收得到
+    const r = await fetch(S.delUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ key: S.delKey, action: 'delete', en }) });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || '刪除失敗');
+    S.cache = S.cache.filter(it => keyOf(it) !== k); delete S.star[k]; save(); render();
+    toast(`🗑 已從試算表刪除「${en}」`);
+  } catch (err) {
+    toast('刪除失敗：' + err.message);
+  }
+}
 
 // 每一頁拉到最上面再往下拉：重新讀試算表，順便檢查 App 有沒有新版
 async function refreshAll() {
@@ -267,6 +286,13 @@ $('#openClaude').onclick = e => {
   location.href = 'claude://' + path;
   setTimeout(() => { if (!left && document.visibilityState === 'visible') location.href = web; }, 1800);
 };
+$('#delUrl').value = S.delUrl || '';
+$('#delUrl').onchange = () => {
+  const m = $('#delUrl').value.match(/https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec/);
+  S.delUrl = m ? m[0] : ''; $('#delUrl').value = S.delUrl; save();
+};
+$('#delKey').value = S.delKey || '';
+$('#delKey').onchange = () => { S.delKey = $('#delKey').value.trim(); save(); };
 $('#projUrl').value = S.projUrl || '';
 $('#projUrl').onchange = () => {
   const m = $('#projUrl').value.match(/https:\/\/claude\.ai\/project\/[\w-]+/);
@@ -300,6 +326,6 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadSW) location.reload(); });
   navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
 }
-$('#ver').textContent = '版本 v13' + (navigator.audioSession ? '（支援 audioSession）' : '');
+$('#ver').textContent = '版本 v14' + (navigator.audioSession ? '（支援 audioSession）' : '');
 render();
 load();
