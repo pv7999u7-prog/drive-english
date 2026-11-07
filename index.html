@@ -44,8 +44,9 @@ nav button.on{color:var(--acc);font-weight:700}
 .item.sent .w{font-size:18px}
 .item .m{color:var(--warn)}
 .item .s{color:var(--dim);font-size:15px;margin-top:4px}
-.item input[type=checkbox]{width:26px;height:26px;margin-top:4px;flex:none}
-.item.done .w{color:var(--dim)}
+.item .star{flex:none;padding:2px 4px;background:none;font-size:26px;line-height:1;color:var(--dim)}
+.item .star.on,#fStar.on{color:#facc15}
+.item .del{font-size:17px;opacity:.6}
 .item .say{flex:none;padding:8px 10px;background:none;font-size:20px}
 .pill{display:inline-block;background:var(--line);border-radius:99px;padding:1px 9px;font-size:12px;color:var(--dim);margin-left:6px;vertical-align:middle}
 .day{color:var(--blue);font-size:14px;margin-top:16px}
@@ -85,7 +86,7 @@ pre{white-space:pre-wrap;background:#0b1220;border-radius:10px;padding:10px;font
     <button data-v="all" class="on">全部</button>
     <button data-v="單字">單字</button>
     <button data-v="句子">句子</button>
-    <button data-v="todo">未複習</button>
+    <button data-v="star">⭐ 星號</button>
   </div>
   <input id="q" type="search" placeholder="搜尋英文或中文">
   <div id="list"></div>
@@ -94,8 +95,7 @@ pre{white-space:pre-wrap;background:#0b1220;border-radius:10px;padding:10px;font
 <section class="page" id="p-card">
   <h1>🃏 抽卡複習</h1>
   <div class="seg" id="cardFlt">
-    <button data-v="todo" class="on">未複習</button>
-    <button data-v="recent" id="recentBtn">最近 100</button>
+    <button data-v="recent" id="recentBtn" class="on">最近 100</button>
     <button data-v="all">全部</button>
   </div>
   <div class="card" id="flash">
@@ -105,8 +105,8 @@ pre{white-space:pre-wrap;background:#0b1220;border-radius:10px;padding:10px;font
   </div>
   <div class="row">
     <button id="fSay">🔊 念</button>
-    <button id="fNo">再看看</button>
-    <button id="fYes" class="pri">記住了 ✓</button>
+    <button id="fStar">☆ 標星號</button>
+    <button id="fNext" class="pri">下一個 →</button>
   </div>
   <div class="dim" id="fCount" style="text-align:center;margin-top:10px"></div>
 </section>
@@ -148,6 +148,6 @@ pre{white-space:pre-wrap;background:#0b1220;border-radius:10px;padding:10px;font
   <button data-p="set">⚙️ 設定</button>
 </nav>
 
-<script src="app.js?v=12"></script>
+<script src="app.js?v=13"></script>
 </body>
 </html>

@@ -3,8 +3,9 @@ const KEY = 'drive-en-v2';
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-let S = { sheetId: '', rate: 0.85, recentN: 100, done: {}, cache: [], cacheAt: 0 };
+let S = { sheetId: '', rate: 0.85, recentN: 100, star: {}, hidden: {}, cache: [], cacheAt: 0 };
 try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
+S.star = S.star || {}; S.hidden = S.hidden || {}; delete S.done;
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 
 // 用 ?sheet=ID 開一次就記住
@@ -50,20 +51,21 @@ async function load() {
   }
 }
 
-// 新的在前
-const items = () => S.cache.slice().reverse();
+// 新的在前；刪除的只在這支手機上隱藏（網頁沒有寫入試算表的權限）
+const items = () => S.cache.filter(it => !S.hidden[keyOf(it)]).slice().reverse();
 
 // ---------- 畫面 ----------
 // showEx=false：單字頁只顯示單字和中文；其他頁連例句一起顯示
 function itemHTML(it, showEx = true) {
-  const k = keyOf(it), done = !!S.done[k];
+  const k = keyOf(it), on = !!S.star[k];
   const sent = it.kind === '句子';
-  return `<div class="item ${sent ? 'sent' : ''} ${done ? 'done' : ''}">
-    <input type="checkbox" data-k="${esc(k)}" ${done ? 'checked' : ''}>
+  return `<div class="item ${sent ? 'sent' : ''}">
+    <button class="star ${on ? 'on' : ''}" data-star="${esc(k)}">${on ? '★' : '☆'}</button>
     <div class="main"><div class="w">${esc(it.en)}${it.from ? `<span class="pill">${esc(it.from)}</span>` : ''}</div>
       <div class="m">${esc(it.zh)}</div>
       ${showEx && it.ex ? `<div class="s">${esc(it.ex)}${it.exZh ? '<br>' + esc(it.exZh) : ''}</div>` : ''}</div>
-    <button class="say" data-say="${esc(it.en)}">🔊</button></div>`;
+    <button class="say" data-say="${esc(it.en)}">🔊</button>
+    ${it.from ? '' : `<button class="say del" data-del="${esc(k)}" data-en="${esc(it.en)}">🗑</button>`}</div>`;
 }
 
 // 句子頁：Claude 教的句子＋單字的例句（例句當成一句來複習）
@@ -76,11 +78,14 @@ function sentences() {
   return out;
 }
 
+// 星號頁：標了星號的單字、句子和例句
+const starred = () => items().concat(sentences().filter(it => it.from)).filter(it => S.star[keyOf(it)]);
+
 let flt = 'all';
 function renderList() {
   const q = $('#q').value.trim().toLowerCase();
   let arr = flt === '句子' ? sentences() : items();
-  if (flt === 'todo') arr = arr.filter(it => !S.done[keyOf(it)]);
+  if (flt === 'star') arr = starred();
   else if (flt === '單字') arr = arr.filter(it => it.kind !== '句子');
   if (q) arr = arr.filter(it => (it.en + it.zh + it.ex + it.exZh).toLowerCase().includes(q));
   let html = '', last = '';
@@ -94,9 +99,9 @@ function renderList() {
 function render() {
   const all = S.cache;
   const words = all.filter(it => it.kind !== '句子').length;
-  const doneN = all.filter(it => S.done[keyOf(it)]).length;
+  const starN = starred().length;
   $('#stat').textContent = S.sheetId
-    ? `共 ${words} 個單字、${all.length - words} 個句子，已複習 ${doneN}` + (S.cacheAt ? `（${new Date(S.cacheAt).toLocaleString('zh-TW', { hour12: false })} 更新）` : '')
+    ? `共 ${words} 個單字、${all.length - words} 個句子，⭐ ${starN}` + (S.cacheAt ? `（${new Date(S.cacheAt).toLocaleString('zh-TW', { hour12: false })} 更新）` : '')
     : '請先到 ⚙️ 設定填試算表 ID';
   const t = items().filter(it => it.date === today());
   $('#today').innerHTML = t.length ? t.map(it => itemHTML(it)).join('') : '<p class="dim" style="margin:0">今天還沒有新單字。練完說「結束」，Claude 存好後到 📖 單字本往下拉更新。</p>';
@@ -105,17 +110,21 @@ function render() {
 }
 
 // ---------- 抽卡 ----------
-let cardFlt = 'todo', card = null;
+let cardFlt = 'recent', card = null;
 function cardPool() {
   const arr = items();
   if (cardFlt === 'recent') return arr.filter(it => it.kind !== '句子').slice(0, S.recentN);
-  if (cardFlt === 'todo') return arr.filter(it => !S.done[keyOf(it)]);
   return arr;
+}
+function showCardStar() {
+  const on = !!(card && S.star[keyOf(card)]);
+  $('#fStar').textContent = on ? '★ 已標星號' : '☆ 標星號';
+  $('#fStar').classList.toggle('on', on);
 }
 function nextCard(keep) {
   const pool = cardPool();
-  $('#fCount').textContent = `這一組還有 ${pool.length} 張`;
-  if (!pool.length) { card = null; $('#fW').textContent = '🎉 全部複習完了'; $('#fHint').style.display = 'none'; $('#fBack').style.display = 'none'; return; }
+  $('#fCount').textContent = `隨機出題，這一組共 ${pool.length} 張`;
+  if (!pool.length) { card = null; showCardStar(); $('#fW').textContent = '還沒有單字'; $('#fHint').style.display = 'none'; $('#fBack').style.display = 'none'; return; }
   if (!(keep && card && pool.includes(card))) {
     let n; do { n = pool[Math.floor(Math.random() * pool.length)]; } while (pool.length > 1 && n === card);
     card = n;
@@ -125,11 +134,12 @@ function nextCard(keep) {
   $('#fS').innerHTML = card.ex ? esc(card.ex) + (card.exZh ? '<br>' + esc(card.exZh) : '') : '';
   $('#fHint').style.display = '';
   $('#fBack').style.display = 'none';
+  showCardStar();
 }
 $('#flash').onclick = () => { if (!card) return; $('#fBack').style.display = 'block'; $('#fHint').style.display = 'none'; };
 $('#fSay').onclick = () => card && speak(card.en);
-$('#fNo').onclick = () => nextCard();
-$('#fYes').onclick = () => { if (card) { S.done[keyOf(card)] = Date.now(); save(); } nextCard(); render(); };
+$('#fStar').onclick = () => { if (card) toggleStar(keyOf(card)); };
+$('#fNext').onclick = () => nextCard();
 $('#cardFlt').onclick = e => { const b = e.target.closest('button'); if (!b) return; cardFlt = b.dataset.v; [...$('#cardFlt').children].forEach(x => x.classList.toggle('on', x === b)); nextCard(); };
 
 // ---------- 朗讀 ----------
@@ -180,8 +190,18 @@ function speakSys(t) {
 }
 
 // ---------- 事件 ----------
+function toggleStar(k) {
+  if (S.star[k]) delete S.star[k]; else S.star[k] = Date.now();
+  save(); render(); showCardStar();
+}
 document.addEventListener('click', e => {
   const s = e.target.closest('[data-say]'); if (s) { speak(s.dataset.say); return; }
+  const st = e.target.closest('[data-star]'); if (st) { toggleStar(st.dataset.star); return; }
+  const d = e.target.closest('[data-del]');
+  if (d && confirm(`刪除「${d.dataset.en}」？
+只會從這支手機的單字本移除，試算表裡的資料不會刪。`)) {
+    S.hidden[d.dataset.del] = Date.now(); delete S.star[d.dataset.del]; save(); render();
+  }
 });
 
 // 每一頁拉到最上面再往下拉：重新讀試算表，順便檢查 App 有沒有新版
@@ -210,11 +230,6 @@ document.addEventListener('touchend', async () => {
     await refreshAll();
   }
   $('#ptr').style.height = '0';
-});
-document.addEventListener('change', e => {
-  const k = e.target.dataset && e.target.dataset.k; if (k === undefined) return;
-  if (e.target.checked) S.done[k] = Date.now(); else delete S.done[k];
-  save(); render();
 });
 $('#flt').onclick = e => { const b = e.target.closest('button'); if (!b) return; flt = b.dataset.v; [...$('#flt').children].forEach(x => x.classList.toggle('on', x === b)); renderList(); };
 $('#q').oninput = renderList;
@@ -285,6 +300,6 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadSW) location.reload(); });
   navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
 }
-$('#ver').textContent = '版本 v12' + (navigator.audioSession ? '（支援 audioSession）' : '');
+$('#ver').textContent = '版本 v13' + (navigator.audioSession ? '（支援 audioSession）' : '');
 render();
 load();
