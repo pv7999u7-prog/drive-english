@@ -129,8 +129,17 @@ function pickVoice() {
   voice = vs.find(v => v.lang === 'en-US' && /Samantha|Premium|Enhanced/.test(v.name)) || vs.find(v => v.lang === 'en-US') || vs[0] || null;
 }
 if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
-// iOS Safari：cancel() 後馬上 speak() 常常沒聲音，所以只有正在念時才 cancel，並稍等一下再念
+// iPhone 開靜音時 speechSynthesis 會沒聲音，所以先用音檔播放（媒體聲音不受靜音開關影響），失敗才退回系統朗讀
+const player = new Audio();
 function speak(t) {
+  player.pause();
+  player.src = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&ttsspeed=${S.rate}&q=${encodeURIComponent(t.slice(0, 200))}`;
+  player.play().catch(() => speakSys(t));
+  player.onerror = () => speakSys(t);
+}
+
+// iOS Safari：cancel() 後馬上 speak() 常常沒聲音，所以只有正在念時才 cancel，並稍等一下再念
+function speakSys(t) {
   if (!('speechSynthesis' in window)) return;
   if (!voice) pickVoice();
   const go = () => {
