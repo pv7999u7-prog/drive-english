@@ -326,6 +326,21 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadSW) location.reload(); });
   navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
 }
-$('#ver').textContent = '版本 v15' + (navigator.audioSession ? '（支援 audioSession）' : '');
+// iPhone 全螢幕 App 剛打開時，底部固定的 bar 會停在錯的位置，要捲動一下才歸位
+// 所以打開、回到前景、轉向時自動輕捲一下，並讓 bar 重新排版
+function fixFixed() {
+  const y = scrollY;
+  scrollTo(0, y + 1);
+  requestAnimationFrame(() => {
+    scrollTo(0, y);
+    for (const el of [document.querySelector('nav'), $('#dock')]) { el.style.transform = 'translateZ(0)'; el.offsetHeight; el.style.transform = ''; }
+  });
+}
+addEventListener('load', () => { fixFixed(); setTimeout(fixFixed, 300); setTimeout(fixFixed, 1000); });
+addEventListener('pageshow', () => setTimeout(fixFixed, 50));
+addEventListener('resize', () => setTimeout(fixFixed, 50));
+document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(fixFixed, 100); });
+
+$('#ver').textContent = '版本 v16' + (navigator.audioSession ? '（支援 audioSession）' : '');
 render();
 load();

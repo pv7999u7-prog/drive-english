@@ -16,7 +16,7 @@
 :root{--bg:#0f172a;--card:#1e293b;--line:#334155;--text:#f1f5f9;--dim:#94a3b8;--acc:#22c55e;--warn:#f59e0b;--bad:#ef4444;--blue:#38bdf8}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{min-height:100%}
-body{min-height:100vh;min-height:100dvh}
+body{min-height:calc(100vh + 1px);min-height:calc(100dvh + 1px)}
 html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,"PingFang TC","Noto Sans TC",sans-serif;font-size:17px}
 body{padding:env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 80px)}
 h1{font-size:22px;margin:16px 0 4px}
@@ -61,6 +61,7 @@ body.home #dock{display:block}
 body.home #p-home{padding-bottom:250px}
 #dock .big{font-size:24px;padding:21px 16px;margin:8px 0 0}
 #dock .cla{background:#D97757!important;color:#fff!important;font-weight:700}
+#dock .logo{width:30px;height:30px;vertical-align:-5px;margin-right:12px}
 #dock .gem{background:linear-gradient(90deg,#4796E3,#9177C7 55%,#CA6673);color:#fff;font-weight:700}
 #ptr{height:0;overflow:hidden;text-align:center;color:var(--dim);font-size:14px;transition:height .15s}
 #toast{white-space:pre-line;position:fixed;left:16px;right:16px;top:calc(env(safe-area-inset-top) + 10px);background:#7f1d1d;color:#fecaca;border-radius:12px;padding:10px 12px;font-size:14px;display:none;z-index:20}
@@ -140,8 +141,8 @@ pre{white-space:pre-wrap;background:#0b1220;border-radius:10px;padding:10px;font
 </section>
 
 <div id="dock">
-  <a class="btn big cla" href="https://claude.ai/" id="openClaude">Claude</a>
-  <a class="btn big gem" href="https://gemini.google.com/app">Gemini</a>
+  <a class="btn big cla" href="https://claude.ai/" id="openClaude"><img class="logo" src="claude-logo.svg" alt="">Claude</a>
+  <a class="btn big gem" href="https://gemini.google.com/app"><img class="logo" src="gemini-logo.svg" alt="">Gemini</a>
 </div>
 
 <div id="toast"></div>
@@ -153,6 +154,6 @@ pre{white-space:pre-wrap;background:#0b1220;border-radius:10px;padding:10px;font
   <button data-p="set">⚙️ 設定</button>
 </nav>
 
-<script src="app.js?v=14"></script>
+<script src="app.js?v=16"></script>
 </body>
 </html>
